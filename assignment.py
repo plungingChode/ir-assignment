@@ -11,16 +11,25 @@ from glob import glob
 IndexMap = Dict[str, int]
 Vector = List[float]
 
-def load_stoplist(stoplist_path: str = './stop-list-hu.txt') -> List[str]:
-    with open(stoplist_path, 'r', encoding='utf-8') as f:
+def load_stoplist() -> List[str]:
+    """
+    Load a stop word list file.
+    """
+    with open('./stop-list-hu.txt', 'r', encoding='utf-8') as f:
         return f.read().splitlines()
 
 def tokenize(document: TextIOWrapper) -> Iterator[str]:
+    """
+    Tokenize a Hungarian document IO stream.
+    """
     for tok in quntoken.tokenize(document):
         # Extract only the output word
         yield tok.split('\t')[0].strip()
-            
+
 def clean(tokens: Iterator[str], stop_words: List[str]) -> Iterator[str]:
+    """
+    Remove unnecessary characters and stop words from an iterator.
+    """
     for tok in tokens:
         # Remove non-word characters
         token = tok.strip('" -,.()[]{}„”')
@@ -29,7 +38,7 @@ def clean(tokens: Iterator[str], stop_words: List[str]) -> Iterator[str]:
         token = token.lower()
         
         if token and token not in stop_words:
-            yield token
+            yield token            
 
 # Lexical analysis tool
 emp = EmMorphPy()
@@ -37,6 +46,10 @@ emp = EmMorphPy()
 emp_stems_only = re.compile(r'.*?([\wáéíóöőúüű]+)\[\/(N|Adj|V|Num)(.*?)\]')
 
 def stem(tokens: Iterator[str]) -> Iterator[str]:
+    """
+    Convert an iterator of Hungarian nouns, adjectives, verbs and numerals into
+    their word stems.
+    """
     for tok in tokens:
         # Analyze token using EmMorphPy
         analysis_result = emp.dstem(tok)
@@ -74,6 +87,9 @@ def merge_indices(ind1: IndexMap, ind2: IndexMap):
 stop_words = load_stoplist()
 
 def index_stream(stream: TextIOWrapper) -> IndexMap:
+    """
+    Create an index set from a stream.
+    """
     tokens = tokenize(stream)
     tokens_cleaned = clean(tokens, stop_words)
     stems = stem(tokens_cleaned)
@@ -81,10 +97,16 @@ def index_stream(stream: TextIOWrapper) -> IndexMap:
     return indices
 
 def index_file(path: str) -> IndexMap:
+    """
+    Create an index set from a file.
+    """
     with open(path, 'r', encoding='utf-8') as f:
         return index_stream(f)
 
 def index_string(s: str) -> IndexMap:
+    """
+    Create an index set from a string.
+    """
     stream = StringIO(s)
     return index_stream(stream)
 
@@ -93,7 +115,6 @@ def vectorize_index(document_index: IndexMap, index_set: List[str]) -> Vector:
     Convert an {index: count} map into an `n = len(index_set)` length vector.
     """
     return [document_index.get(idx, 0) for idx in index_set]
-
 
 def max_normalize_vector(vec: Vector) -> Vector:
     """
