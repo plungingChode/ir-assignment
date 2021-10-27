@@ -57,12 +57,13 @@ def stem(tokens: Iterator[str]) -> Iterator[str]:
             continue
         
         # Extract stems from detailed analysis part (if any)
-        stems_filtered = emp_stems_only.match(analysis_result[0][-2])
-        if not stems_filtered:
+        stems = emp_stems_only.findall(analysis_result[0][-2])
+        if not stems:
             continue
         
-        # Force lowercase word (for counting)
-        yield stems_filtered.group(1).lower()
+        for match in stems:
+            # Force lowercase word (for counting)
+            yield match[0].lower()
 
 def count_indices(indices: Iterator[str]) -> IndexMap:
     """
@@ -91,9 +92,9 @@ def index_stream(stream: TextIOWrapper) -> IndexMap:
     Create an index set from a stream.
     """
     tokens = tokenize(stream)
-    tokens_cleaned = clean(tokens, stop_words)
-    stems = stem(tokens_cleaned)
-    indices = count_indices(stems)
+    tokens = clean(tokens, stop_words)
+    tokens = stem(tokens)
+    indices = count_indices(tokens)
     return indices
 
 def index_file(path: str) -> IndexMap:
